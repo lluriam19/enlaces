@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrashOverflow — Julián Rodríguez</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --green: #00ff88;
+      --green-dim: #00cc6a;
+      --green-glow: rgba(0, 255, 136, 0.15);
+      --text: #e8e8e8;
+      --text-dim: #666;
+      --red: #ff3b3b;
+      --mono: 'Share Tech Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Grid background */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .prompt {
+      color: var(--green);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      margin-bottom: 0.5rem;
+      opacity: 0.7;
+    }
+
+    .name {
+      font-family: var(--sans);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+
+    .alias {
+      color: var(--green);
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+    }
+
+    .alias span {
+      animation: blink 1.2s step-end infinite;
+    }
+
+    .tagline {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 0 2rem;
+      position: relative;
+      animation: fadeIn 0.6s 0.2s ease both;
+    }
+
+    .divider::before {
+      content: '// perfiles';
+      position: absolute;
+      top: -0.55rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg);
+      padding: 0 0.75rem;
+      color: var(--text-dim);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+    }
+
+    /* Links */
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1.2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid transparent;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .link-item:nth-child(1) { animation-delay: 0.1s; border-left-color: var(--green); }
+    .link-item:nth-child(2) { animation-delay: 0.2s; }
+    .link-item:nth-child(3) { animation-delay: 0.3s; }
+    .link-item:nth-child(4) { animation-delay: 0.4s; }
+    .link-item:nth-child(5) { animation-delay: 0.5s; }
+    .link-item:nth-child(6) { animation-delay: 0.6s; }
+
+    .link-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0;
+      background: var(--green-glow);
+      transition: width 0.3s ease;
+    }
+
+    .link-item:hover {
+      border-color: var(--green);
+      border-left-color: var(--green);
+      color: var(--green);
+      transform: translateX(4px);
+    }
+
+    .link-item:hover::before {
+      width: 100%;
+    }
+
+    .link-icon {
+      font-size: 1.1rem;
+      width: 1.5rem;
+      text-align: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .link-content {
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .link-label {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.03em;
+      display: block;
+    }
+
+    .link-desc {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      display: block;
+      margin-top: 0.15rem;
+      transition: color 0.2s;
+    }
+
+    .link-item:hover .link-desc {
+      color: var(--green-dim);
+    }
+
+    .link-arrow {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      position: relative;
+      z-index: 1;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .link-item:hover .link-arrow {
+      color: var(--green);
+      transform: translateX(3px);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      animation: fadeIn 0.6s 0.8s ease both;
+    }
+
+    .footer-line {
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+    }
+
+    .footer-line .highlight {
+      color: var(--green);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+      font-size: 0.62rem;
+      color: var(--text-dim);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <p class="prompt">$ whoami</p>
+      <h1 class="name">Julián Rodríguez</h1>
+      <p class="alias">~CrashOverflow<span>_</span></p>
+      <p class="tagline">Pentester · Vulnerability Management · Bug Bounty Researcher</p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="links">
+
+      <a class="link-item" href="https://www.linkedin.com/in/julianrodriguezpentester/" target="_blank" rel="noopener">
+        <span class="link-icon">💼</span>
+        <span class="link-content">
+          <span class="link-label">LinkedIn</span>
+          <span class="link-desc">julianrodriguezpentester</span>
+        </span>
+        <span class="link-arrow">→</span>
+      </a>
+
+      <a class="link-item" href="https://crashoverflow.gitbook.io/blog" target="_blank" rel="noopener">
+        <span class="link-icon">📖</span>
+        <span class="link-content">
+          <span class="link-label">Blog & Write-ups</span>
+          <span class="link-desc">crashoverflow.gitbook.io</span>
+        </span>
+        <span class="link-arrow">→</span>
+      </a>
+
+      <a class="link-item" href="https://github.com/lluriam19" target="_blank" rel="noopener">
+        <span class="link-icon">⚙️</span>
+        <span class="link-content">
+          <span class="link-label">GitHub</span>
+          <span class="link-desc">Herramientas · Scripts · Proyectos</span>
+        </span>
+        <span class="link-arrow">→</span>
+      </a>
+
+      <a class="link-item" href="https://tryhackme.com/p/crashOverflow" target="_blank" rel="noopener">
+        <span class="link-icon">🎯</span>
+        <span class="link-content">
+          <span class="link-label">TryHackMe</span>
+          <span class="link-desc">Top 1% global · +180 máquinas</span>
+        </span>
+        <span class="link-arrow">→</span>
+      </a>
+
+      <a class="link-item" href="https://profile.hackthebox.com/profile/019db597-95a1-719b-90ab-17f19c122be6" target="_blank" rel="noopener">
+        <span class="link-icon">🟩</span>
+        <span class="link-content">
+          <span class="link-label">Hack The Box</span>
+          <span class="link-desc">CrashOverflow</span>
+        </span>
+        <span class="link-arrow">→</span>
+      </a>
+
+      <a class="link-item" href="https://www.youtube.com/@CiberIntrepidos" target="_blank" rel="noopener">
+        <span class="link-icon">▶️</span>
+        <span class="link-content">
+          <span class="link-label">YouTube</span>
+          <span class="link-desc">Ciber Intrépidos</span>
+        </span>
+        <span class="link-arrow">→</span>
+      </a>
+
+    </div>
+
+    <div class="footer">
+      <p class="footer-line">CEH Master · eWPT <span class="highlight">(en preparación)</span> · Bug Bounty</p>
+      <p class="footer-line" style="margin-top:0.25rem">Hack Royale 2026 · Top <span class="highlight">9/95</span> · MadrIDefenders</p>
+      <div class="status">
+        <span class="status-dot"></span>
+        <span>Open to work · Sevilla · Disponibilidad geográfica</span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
